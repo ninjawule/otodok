@@ -58,9 +58,9 @@ func (thisParser *golangParser) IsCurrentScopeClosing(line string) bool {
 }
 
 // ParseFunctionDetails must return the name of the function declared on the given line,
-// a boolean indicating if the function is a method, and if so, the "class" it belongs to
+// and if the function is a method, the "class" it belongs to
 //
-//nolint:gocritic // TODO fix
+//nolint:gocritic // TODO fix potential -1 index here
 func (thisParser *golangParser) ParseFunctionDetails(line string) (funcName core.FuncName, ownerType core.TypeName) {
 	// we either have: 1) "func funcName(..." -> "funcName(..."
 	// or            : 2) "func (r *ownerType) funcName(..." -> "(r *ownerType) funcName(..."
