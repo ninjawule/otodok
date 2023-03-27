@@ -38,6 +38,6 @@ type IParser interface {
 	IsCurrentScopeClosing(line string) bool
 
 	// ParseFunctionDetails must return the name of the function declared on the given line,
-	// a boolean indicating if the function is a method, and if so, the "class" it belongs to
+	// and if the function is a method, the "class" it belongs to
 	ParseFunctionDetails(line string) (funcName FuncName, ownerType TypeName)
 }
