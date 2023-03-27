@@ -49,12 +49,12 @@ func (thisParser *golangParser) IsFunctionDeclStart(line string) bool {
 
 // IsNewScopeOpening : are we witnessing the opening of a new scope ? e.g. (in Go): " ... {"
 func (thisParser *golangParser) IsNewScopeOpening(line string) bool {
-	return strings.HasSuffix(line, " {")
+	return strings.HasSuffix(line, "{")
 }
 
 // IsCurrentScopeClosing : are we witnessing the closing of the current scope ? e.g. (in Go): " ... }"
 func (thisParser *golangParser) IsCurrentScopeClosing(line string) bool {
-	return line == "}"
+	return strings.HasPrefix(line, "}")
 }
 
 // ParseFunctionDetails must return the name of the function declared on the given line,

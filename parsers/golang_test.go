@@ -32,9 +32,9 @@ func TestIsBlockCommentEnd(t *testing.T) {
 func TestParseFunctionDetails(t *testing.T) {
 	p := &golangParser{}
 	funcName, ownerType := p.ParseFunctionDetails("func init()")
-	assert.Equal(t, "init", funcName)
-	assert.Equal(t, "", ownerType)
+	assert.Equal(t, "init", string(funcName))
+	assert.Equal(t, "", string(ownerType))
 	funcName, ownerType = p.ParseFunctionDetails("func (r *Contract) Validate()")
-	assert.Equal(t, "Validate", funcName)
-	assert.Equal(t, "*Contract", ownerType)
+	assert.Equal(t, "Validate", string(funcName))
+	assert.Equal(t, "*Contract", string(ownerType))
 }

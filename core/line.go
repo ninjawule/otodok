@@ -4,6 +4,7 @@
 package core
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -17,6 +18,11 @@ type lineHandlingFunc func(ctx *context, line string, num int) error
 //
 //nolint:cyclop,revive // no need
 func findFunctionDeclarationsAndSpecsInLine(ctx *context, line string, num int) error {
+	// stopper, used for debugging purposes
+	if strings.HasSuffix(line, "// OTODOK_STOP") {
+		return fmt.Errorf("stopping at line %d", num)
+	}
+
 	// parsing: block comments
 	if ctx.lang.IsBlockCommentStart(line) { // "/* blabla"
 		ctx.trace(num, "Starting block comment")
@@ -47,8 +53,8 @@ func findFunctionDeclarationsAndSpecsInLine(ctx *context, line string, num int) 
 	// at this point, we're not dealing with a docbit here, so we close the current one, if any
 	ctx.getCurrentRootOrFunctionScope().closeDocbit()
 
-	// let's also get rid of the trailing comment, if any
-	line = ctx.lang.RemoveTrailingComment(line) // "... { // bla bla" => "... {"
+	// let's also get rid of the trailing comment, if any - then trim the spaces
+	line = strings.TrimSpace(ctx.lang.RemoveTrailingComment(line)) // "... { // bla bla" => "... {"
 
 	// parsing: function declarations (simple ones at least, not anonymous ones, for now)
 	if ctx.lang.IsFunctionDeclStart(line) { // "func ..."
@@ -65,7 +71,7 @@ func findFunctionDeclarationsAndSpecsInLine(ctx *context, line string, num int) 
 	// we loop here until the function scope is officially open and we can start scanning the function's content
 	if ctx.getCurrentRootOrFunctionScope().inFuncDeclaration {
 		if ctx.lang.IsNewScopeOpening(line) { // "\n ... {"
-			ctx.trace(num, "Function scope officially opened")
+			ctx.trace(num, "Function scope officially opened (%s)", ctx.getCurrentRootOrFunctionScope())
 			ctx.getCurrentRootOrFunctionScope().setInFuncDeclaration(false)
 
 			return nil
@@ -76,10 +82,18 @@ func findFunctionDeclarationsAndSpecsInLine(ctx *context, line string, num int) 
 		return nil
 	}
 
+	// if we're closing a scope and opening a new one in the same line, let's handle it
+	if ctx.lang.IsCurrentScopeClosing(line) && ctx.lang.IsNewScopeOpening(line) {
+		ctx.trace(num, "Closing } then { opening a nested scope in '%s' (total open: %d)", ctx.getCurrentRootOrFunctionScope(),
+			ctx.getCurrentRootOrFunctionScope().openNestedScopes)
+
+		return nil
+	}
+
 	// if a new scope opens here, we know it's not a function or method in the root
 	if ctx.lang.IsNewScopeOpening(line) {
 		ctx.getCurrentRootOrFunctionScope().openNestedScopes++
-		ctx.trace(num, "{ Opening nested scope in '%s' (total open: %d)", ctx.getCurrentRootOrFunctionScope(),
+		ctx.trace(num, "{ Opening a nested scope in '%s' (total open: %d)", ctx.getCurrentRootOrFunctionScope(),
 			ctx.getCurrentRootOrFunctionScope().openNestedScopes)
 
 		return nil
@@ -87,12 +101,12 @@ func findFunctionDeclarationsAndSpecsInLine(ctx *context, line string, num int) 
 
 	// if a scope closes here, then:
 	if ctx.lang.IsCurrentScopeClosing(line) {
-		if ctx.getCurrentRootOrFunctionScope().openNestedScopes > 1 {
+		if ctx.getCurrentRootOrFunctionScope().openNestedScopes >= 1 {
 			ctx.getCurrentRootOrFunctionScope().openNestedScopes--
-			ctx.trace(num, "Closing } nested scope in '%s' (total open: %d)", ctx.getCurrentRootOrFunctionScope(),
+			ctx.trace(num, "Closing } a nested scope in '%s' (total open: %d)", ctx.getCurrentRootOrFunctionScope(),
 				ctx.getCurrentRootOrFunctionScope().openNestedScopes)
 		} else {
-			ctx.trace(num, "Closing function's scope (%s)", ctx.getCurrentRootOrFunctionScope().fnName)
+			ctx.trace(num, "Closing a function's scope (%s)", ctx.getCurrentRootOrFunctionScope())
 			ctx.closeCurrentFunctionScope()
 		}
 
